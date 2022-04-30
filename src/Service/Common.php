@@ -20,6 +20,7 @@ class Common
     {
 
         try {
+            // (1) 使用中文做redis key 可能会存在问题 , 可以md5($address) 后,使用返回的值做key 
             $cackeKey = 'cache-address-'.$address;
 
             // 從獲取座標
@@ -31,7 +32,7 @@ class Common
             $key = 'time=' . time();
 
             // requestLog：寫日志
-            requestLog('Backend', 'Thrift', 'Http', 'phpgeohelper\\Geocoding->convert_addresses', 'https://geo-helper-hostr.ks-it.co',  [[$address, $key]]);
+           // requestLog('Backend', 'Thrift', 'Http', 'phpgeohelper\\Geocoding->convert_addresses', 'https://geo-helper-hostr.ks-it.co',  [[$address, $key]]);
 
             // getThriftService： 獲取 Thrift 服務
             $geoHelper = ServiceContainer::getThriftService('phpgeohelper\\Geocoding');
@@ -42,7 +43,7 @@ class Common
             $response = json_decode($response, true);
 
             if ($response['error'] == 0) {
-                responseLog('Backend', 'phpgeohelper\\Geocoding->hksf_addresses', 'https://geo-helper-hostr.ks-it.co', '200', '0',  $response);
+                //responseLog('Backend', 'phpgeohelper\\Geocoding->hksf_addresses', 'https://geo-helper-hostr.ks-it.co', '200', '0',  $response);
                 $data = $response['data'][0];
                 $coordinate = $data['coordinate'];
 
@@ -53,10 +54,12 @@ class Common
                         $sMerchant = new Merchant();
                         $res = $sMerchant->get_merchant_address($merchant_id);
                         $user_location = $res['latitude'] . ',' . $res['longitude'];
+                         // (2) 这里应该继续 set 缓存 , redisx()->set($cackeKey, $user_location);
                         return $user_location;
                     }
-                    infoLog('geoHelper->hksf_addresses change failed === merchant_id is null' . $merchant_id);
-                    return false;
+                   infoLog('geoHelper->hksf_addresses change failed === merchant_id is null' . $merchant_id);
+                    // (3) 应该统一返回字符串 ,比如 : return ""                   
+                   return false;
                 }
                 if (!isset($data['error']) && (strpos($coordinate,',') !== false)) {
                     $arr = explode(',', $coordinate);
@@ -68,9 +71,11 @@ class Common
                 }
             }
             responseLog('Backend', 'phpgeohelper\\Geocoding->hksf_addresses', 'https://geo-helper-hostr.ks-it.co', '401', '401',  $response);
+            // (4) 应该统一返回字符串 ,比如 : return ""
             return false;
         } catch (\Throwable $t) {
-            criticalLog('geoHelperAddress critical ==' . $t->getMessage());
+           // criticalLog('geoHelperAddress critical ==' . $t->getMessage());
+             // (5) 应该统一返回字符串 ,比如 : return ""
             return 0;
         }
     }
@@ -80,12 +85,14 @@ class Common
     {
         // 是900 可以回调
         if ($status == 900) {
+             // (1) 应该统一返回字符串 ,比如 : return "1"
             return 1;
         }
         // backend状态为 909 915 916 时 解锁工作单 但不回调
         $code_arr = ['909', '915', '916'];
         if (in_array($status, $code_arr)) {
-            infoLog('checkStatusCallback backend code is 909 915 916');
+           infoLog('checkStatusCallback backend code is 909 915 916');
+            // (2) 应该统一返回字符串 ,比如 : return "0"
             return 0;
         }
 
